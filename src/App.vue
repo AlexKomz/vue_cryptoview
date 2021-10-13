@@ -263,6 +263,15 @@ export default {
     };
   },
 
+  created() {
+    const tickersData = localStorage.getItem(`cryptonomicon-list`);
+
+    if (tickersData) {
+      this.tickers = JSON.parse(tickersData);
+      this.tickers.forEach((ticker) => this.subscribeToUpdates(ticker.name));
+    }
+  },
+
   // START #15 Криптономикон-4 - Самостоятельная работа (валидации)
   mounted() {
     (async () => {
@@ -276,6 +285,24 @@ export default {
   // END #15 Криптономикон-4 - Самостоятельная работа (валидации)
 
   methods: {
+    subscribeToUpdates(tickerName) {
+      setInterval(async () => {
+        const f = await fetch(
+          `https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=9563db33341ed2502231935ffbea554d65356f7b8686b709d10d91580682a0b2`
+        );
+
+        const data = await f.json();
+
+        // currentTicker.price = data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
+        this.tickers.find((t) => t.name === tickerName).price =
+          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
+
+        if (this.sel?.name === tickerName) {
+          this.graph.push(data.USD);
+        }
+      }, 5000);
+    },
+
     add() {
       const currentTicker = { name: this.ticker, price: `-` };
 
@@ -284,21 +311,10 @@ export default {
       if (!this.isValid) return; // #15 Криптономикон-4 - Самостоятельная работа (валидации)
 
       this.tickers.push(currentTicker);
-      setInterval(async () => {
-        const f = await fetch(
-          `https://min-api.cryptocompare.com/data/price?fsym=${currentTicker.name}&tsyms=USD&api_key=9563db33341ed2502231935ffbea554d65356f7b8686b709d10d91580682a0b2`
-        );
 
-        const data = await f.json();
+      localStorage.setItem(`cryptonomicon-list`, JSON.stringify(this.tickers));
+      this.subscribeToUpdates(currentTicker.name);
 
-        // currentTicker.price = data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
-        this.tickers.find((t) => t.name === currentTicker.name).price =
-          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
-
-        if (this.sel?.name === currentTicker.name) {
-          this.graph.push(data.USD);
-        }
-      }, 5000);
       this.ticker = ``;
       this.autocomplete = []; // #15 Криптономикон-4 - Самостоятельная работа (валидации)
     },
