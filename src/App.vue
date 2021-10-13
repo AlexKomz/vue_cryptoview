@@ -143,13 +143,75 @@
 
       <template v-if="tickers.length">
         <hr class="w-full border-t border-gray-600 my-4" />
+        <div>
+          <button
+            class="
+              mx-2
+              my-4
+              inline-flex
+              items-center
+              py-2
+              px-4
+              border border-transparent
+              shadow-sm
+              text-sm
+              leading-4
+              font-medium
+              rounded-full
+              text-white
+              bg-gray-600
+              hover:bg-gray-700
+              transition-colors
+              duration-300
+              focus:outline-none
+              focus:ring-2
+              focus:ring-offset-2
+              focus:ring-gray-500
+            "
+            v-if="page > 1"
+            @click="page = +page - 1"
+          >
+            Назад
+          </button>
+          <button
+            class="
+              mx-2
+              my-4
+              inline-flex
+              items-center
+              py-2
+              px-4
+              border border-transparent
+              shadow-sm
+              text-sm
+              leading-4
+              font-medium
+              rounded-full
+              text-white
+              bg-gray-600
+              hover:bg-gray-700
+              transition-colors
+              duration-300
+              focus:outline-none
+              focus:ring-2
+              focus:ring-offset-2
+              focus:ring-gray-500
+            "
+            v-if="hasNextPage"
+            @click="page = +page + 1"
+          >
+            Вперед
+          </button>
+          <div>Фильтр: <input v-model="filter" /></div>
+        </div>
+        <hr class="w-full border-t border-gray-600 my-4" />
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
-            v-for="t of tickers"
+            v-for="t of paginatedTickers"
             :key="t.name"
             @click="select(t)"
             :class="{
-              'border-4': sel === t,
+              'border-4': selectedTicker === t,
             }"
             class="
               bg-white
@@ -206,20 +268,20 @@
         </dl>
         <hr class="w-full border-t border-gray-600 my-4" />
       </template>
-      <section class="relative" v-if="sel">
+      <section class="relative" v-if="selectedTicker">
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
-          {{ sel.name }} - USD
+          {{ selectedTicker.name }} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
           <div
-            v-for="(bar, index) in normalizeGraph()"
+            v-for="(bar, index) in normalizedGraph"
             :key="index"
             :style="{ height: `${bar}%` }"
             class="bg-purple-800 border w-10"
           ></div>
         </div>
         <button
-          @click="sel = null"
+          @click="selectedTicker = null"
           type="button"
           class="absolute top-0 right-0"
         >
@@ -248,15 +310,32 @@
 </template>
 
 <script>
+// [x] 6. Наличии в состоянии ЗАВИСИМЫХ ДАННЫХ | Критичность: 5+
+// [ ] 4. Запросы напрямую внутри компонента (???) | Критичность: 5
+// [ ] 2. При удалении остается подписка на загрузку тикера | Критичность: 5
+// [ ] 5. Обработка ошибок API | Критичность: 5
+// [ ] 3. Количество запросов | Критичность: 4
+// [x] 8. При удалении тикера не изменяется localStorage | Критичность: 4
+// [x] 1. Одинаковый код в watch | Критичность: 3
+// [ ] 9. localStorage и анонимные вкладки | Критичность: 3
+// [ ] 7. График ужасно выглядит если будет много цен | Критичность: 2
+// [ ] 10. Магические строки и числа (URL, 5000 мс задержки, ключ localStorage, количество на странице) | Критичность: 1
+
+// Параллельно
+// [x] График сломан если везде одинаковые значения
+// [x] При удалении тикера остается выбор
+
 export default {
   name: "App",
 
   data() {
     return {
       ticker: ``,
+      filter: ``,
       tickers: [],
-      sel: null,
+      selectedTicker: null,
       graph: [],
+      page: 1,
       dictionary: null, // #15 Криптономикон-4 - Самостоятельная работа (валидации)
       isValid: true, // #15 Криптономикон-4 - Самостоятельная работа (валидации)
       autocomplete: [], // #15 Криптономикон-4 - Самостоятельная работа (валидации)
@@ -264,6 +343,18 @@ export default {
   },
 
   created() {
+    const windowData = Object.fromEntries(
+      new URL(window.location).searchParams.entries()
+    );
+
+    if (windowData.filter) {
+      this.filter = windowData.filter;
+    }
+
+    if (windowData.page) {
+      this.page = windowData.page;
+    }
+
     const tickersData = localStorage.getItem(`cryptonomicon-list`);
 
     if (tickersData) {
@@ -284,6 +375,48 @@ export default {
   },
   // END #15 Криптономикон-4 - Самостоятельная работа (валидации)
 
+  computed: {
+    startIndex() {
+      return (this.page - 1) * 6;
+    },
+
+    endIndex() {
+      return this.page * 6;
+    },
+
+    filteredTickers() {
+      return this.tickers.filter((ticker) => ticker.name.includes(this.filter));
+    },
+
+    paginatedTickers() {
+      return this.filteredTickers.slice(this.startIndex, this.endIndex);
+    },
+
+    hasNextPage() {
+      return this.filteredTickers.length > this.endIndex;
+    },
+
+    normalizedGraph() {
+      const maxValue = Math.max(...this.graph);
+      const minValue = Math.min(...this.graph);
+
+      if (maxValue === minValue) {
+        return this.graph.map(() => 50);
+      }
+
+      return this.graph.map(
+        (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
+      );
+    },
+
+    pageStateOptions() {
+      return {
+        filter: this.filter,
+        page: this.page,
+      };
+    },
+  },
+
   methods: {
     subscribeToUpdates(tickerName) {
       setInterval(async () => {
@@ -297,45 +430,46 @@ export default {
         this.tickers.find((t) => t.name === tickerName).price =
           data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
 
-        if (this.sel?.name === tickerName) {
+        if (this.selectedTicker?.name === tickerName) {
           this.graph.push(data.USD);
         }
       }, 5000);
     },
 
     add() {
+      if (!this.ticker) return;
+
       const currentTicker = { name: this.ticker, price: `-` };
 
       this.isValid = this.validate(currentTicker); // #15 Криптономикон-4 - Самостоятельная работа (валидации)
 
       if (!this.isValid) return; // #15 Криптономикон-4 - Самостоятельная работа (валидации)
 
-      this.tickers.push(currentTicker);
+      this.tickers = [...this.tickers, currentTicker];
+      this.filter = ``;
 
-      localStorage.setItem(`cryptonomicon-list`, JSON.stringify(this.tickers));
       this.subscribeToUpdates(currentTicker.name);
 
       this.ticker = ``;
-      this.autocomplete = []; // #15 Криптономикон-4 - Самостоятельная работа (валидации)
     },
 
     select(ticker) {
-      this.sel = ticker;
-      this.graph = [];
+      this.selectedTicker = ticker;
     },
 
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter((t) => t !== tickerToRemove);
+
+      if (this.selectedTicker === tickerToRemove) {
+        this.selectedTicker = null;
+      }
     },
 
     // START #15 Криптономикон-4 - Самостоятельная работа (валидации)
     handleInput() {
       this.isValid = true;
 
-      if (!this.ticker) {
-        this.autocomplete = [];
-        return;
-      }
+      if (!this.ticker) return;
 
       const input = this.ticker.toLowerCase();
       this.autocomplete = Object.values(this.dictionary)
@@ -343,7 +477,7 @@ export default {
           const symbol = item.Symbol.toLowerCase();
           const fullName = item.FullName.toLowerCase();
 
-          return symbol.indexOf(input) > -1 || fullName.indexOf(input) > -1;
+          return symbol.includes(input) || fullName.includes(input);
         })
         .slice(0, 4);
     },
@@ -355,17 +489,43 @@ export default {
 
     // END #15 Криптономикон-4 - Самостоятельная работа (валидации)
 
-    normalizeGraph() {
-      const maxValue = Math.max(...this.graph);
-      const minValue = Math.min(...this.graph);
-      return this.graph.map(
-        (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
+    // START #15 Криптономикон-4 - Самостоятельная работа (валидации)
+    validate(ticketToValid) {
+      return !this.tickers.some((ticket) => ticket.name === ticketToValid.name);
+    },
+    // END #15 Криптономикон-4 - Самостоятельная работа (валидации)
+  },
+
+  watch: {
+    tickers() {
+      localStorage.setItem(`cryptonomicon-list`, JSON.stringify(this.tickers));
+    },
+
+    selectedTicker() {
+      this.graph = [];
+    },
+
+    paginatedTickers() {
+      if (this.paginatedTickers.length === 0 && this.page > 1) {
+        this.page -= 1;
+      }
+    },
+
+    filter() {
+      this.page = 1;
+    },
+
+    pageStateOptions(value) {
+      window.history.pushState(
+        null,
+        document.title,
+        `${window.location.pathname}?filter=${value.filter}&page=${value.page}`
       );
     },
 
     // START #15 Криптономикон-4 - Самостоятельная работа (валидации)
-    validate(ticketToValid) {
-      return !this.tickers.some((ticket) => ticket.name === ticketToValid.name);
+    ticker() {
+      if (!this.ticker) this.autocomplete = [];
     },
     // END #15 Криптономикон-4 - Самостоятельная работа (валидации)
   },
