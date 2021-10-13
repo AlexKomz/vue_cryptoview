@@ -1,7 +1,42 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
+    <div
+      v-if="!dictionary"
+      class="
+        fixed
+        w-100
+        h-100
+        opacity-80
+        bg-purple-800
+        inset-0
+        z-50
+        flex
+        items-center
+        justify-center
+      "
+    >
+      <svg
+        class="animate-spin -ml-1 mr-3 h-12 w-12 text-white"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+        ></circle>
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        ></path>
+      </svg>
+    </div>
     <div class="container">
-      <div class="w-full my-4"></div>
       <section>
         <div class="flex">
           <div class="max-w-xs">
@@ -10,6 +45,7 @@
             >
             <div class="mt-1 relative rounded-md shadow-md">
               <input
+                @input="handleInput"
                 v-model="ticker"
                 v-on:keydown.enter="add"
                 type="text"
@@ -27,6 +63,32 @@
                 "
                 placeholder="Например DOGE"
               />
+            </div>
+            <div
+              class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
+            >
+              <span
+                v-for="t in autocomplete"
+                :key="t.Id"
+                @click="handleAutocompleteClick(t.Symbol)"
+                class="
+                  inline-flex
+                  items-center
+                  px-2
+                  m-1
+                  rounded-md
+                  text-xs
+                  font-medium
+                  bg-gray-300
+                  text-gray-800
+                  cursor-pointer
+                "
+              >
+                {{ t.Symbol }}
+              </span>
+            </div>
+            <div v-if="!isValid" class="text-sm text-red-600">
+              Такой тикер уже добавлен
             </div>
           </div>
         </div>
@@ -189,12 +251,29 @@ export default {
       tickers: [],
       sel: null,
       graph: [],
+      dictionary: null,
+      isValid: true,
+      autocomplete: [],
     };
+  },
+
+  mounted() {
+    (async () => {
+      const response = await fetch(
+        `https://min-api.cryptocompare.com/data/all/coinlist?summary=true`
+      );
+      const json = await response.json();
+      this.dictionary = json.Data;
+    })();
   },
 
   methods: {
     add() {
       const currentTicker = { name: this.ticker, price: `-` };
+
+      this.isValid = this.validate(currentTicker);
+
+      if (!this.isValid) return;
 
       this.tickers.push(currentTicker);
       setInterval(async () => {
@@ -213,6 +292,7 @@ export default {
         }
       }, 5000);
       this.ticker = ``;
+      this.autocomplete = [];
     },
 
     select(ticker) {
@@ -224,12 +304,40 @@ export default {
       this.tickers = this.tickers.filter((t) => t !== tickerToRemove);
     },
 
+    handleInput() {
+      this.isValid = true;
+
+      if (!this.ticker) {
+        this.autocomplete = [];
+        return;
+      }
+
+      const input = this.ticker.toLowerCase();
+      this.autocomplete = Object.values(this.dictionary)
+        .filter((item) => {
+          const symbol = item.Symbol.toLowerCase();
+          const fullName = item.FullName.toLowerCase();
+
+          return symbol.indexOf(input) > -1 || fullName.indexOf(input) > -1;
+        })
+        .slice(0, 4);
+    },
+
+    handleAutocompleteClick(tickerFromAutocomplete) {
+      this.ticker = tickerFromAutocomplete;
+      this.add();
+    },
+
     normalizeGraph() {
       const maxValue = Math.max(...this.graph);
       const minValue = Math.min(...this.graph);
       return this.graph.map(
         (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
       );
+    },
+
+    validate(ticketToValid) {
+      return !this.tickers.some((ticket) => ticket.name === ticketToValid.name);
     },
   },
 };
