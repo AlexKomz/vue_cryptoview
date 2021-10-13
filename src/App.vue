@@ -1,5 +1,6 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
+    <!--START #15 Криптономикон-4 - Самостоятельная работа (валидации)-->
     <div
       v-if="!dictionary"
       class="
@@ -36,6 +37,7 @@
         ></path>
       </svg>
     </div>
+    <!--END #15 Криптономикон-4 - Самостоятельная работа (валидации)-->
     <div class="container">
       <section>
         <div class="flex">
@@ -44,6 +46,7 @@
               >Тикер {{ ticker }}</label
             >
             <div class="mt-1 relative rounded-md shadow-md">
+              <!--#15 Криптономикон-4 - Самостоятельная работа (валидации)-->
               <input
                 @input="handleInput"
                 v-model="ticker"
@@ -64,7 +67,9 @@
                 placeholder="Например DOGE"
               />
             </div>
+            <!--START #15 Криптономикон-4 - Самостоятельная работа (валидации)-->
             <div
+              v-if="autocomplete.length"
               class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
             >
               <span
@@ -90,6 +95,7 @@
             <div v-if="!isValid" class="text-sm text-red-600">
               Такой тикер уже добавлен
             </div>
+            <!--END #15 Криптономикон-4 - Самостоятельная работа (валидации)-->
           </div>
         </div>
         <button
@@ -251,12 +257,13 @@ export default {
       tickers: [],
       sel: null,
       graph: [],
-      dictionary: null,
-      isValid: true,
-      autocomplete: [],
+      dictionary: null, // #15 Криптономикон-4 - Самостоятельная работа (валидации)
+      isValid: true, // #15 Криптономикон-4 - Самостоятельная работа (валидации)
+      autocomplete: [], // #15 Криптономикон-4 - Самостоятельная работа (валидации)
     };
   },
 
+  // START #15 Криптономикон-4 - Самостоятельная работа (валидации)
   mounted() {
     (async () => {
       const response = await fetch(
@@ -266,14 +273,15 @@ export default {
       this.dictionary = json.Data;
     })();
   },
+  // END #15 Криптономикон-4 - Самостоятельная работа (валидации)
 
   methods: {
     add() {
       const currentTicker = { name: this.ticker, price: `-` };
 
-      this.isValid = this.validate(currentTicker);
+      this.isValid = this.validate(currentTicker); // #15 Криптономикон-4 - Самостоятельная работа (валидации)
 
-      if (!this.isValid) return;
+      if (!this.isValid) return; // #15 Криптономикон-4 - Самостоятельная работа (валидации)
 
       this.tickers.push(currentTicker);
       setInterval(async () => {
@@ -292,7 +300,7 @@ export default {
         }
       }, 5000);
       this.ticker = ``;
-      this.autocomplete = [];
+      this.autocomplete = []; // #15 Криптономикон-4 - Самостоятельная работа (валидации)
     },
 
     select(ticker) {
@@ -304,6 +312,7 @@ export default {
       this.tickers = this.tickers.filter((t) => t !== tickerToRemove);
     },
 
+    // START #15 Криптономикон-4 - Самостоятельная работа (валидации)
     handleInput() {
       this.isValid = true;
 
@@ -328,6 +337,8 @@ export default {
       this.add();
     },
 
+    // END #15 Криптономикон-4 - Самостоятельная работа (валидации)
+
     normalizeGraph() {
       const maxValue = Math.max(...this.graph);
       const minValue = Math.min(...this.graph);
@@ -336,9 +347,11 @@ export default {
       );
     },
 
+    // START #15 Криптономикон-4 - Самостоятельная работа (валидации)
     validate(ticketToValid) {
       return !this.tickers.some((ticket) => ticket.name === ticketToValid.name);
     },
+    // END #15 Криптономикон-4 - Самостоятельная работа (валидации)
   },
 };
 </script>
