@@ -338,9 +338,12 @@ export default {
     return {
       ticker: ``,
       filter: ``,
+
       tickers: [],
       selectedTicker: null,
+
       graph: [],
+
       page: 1,
       dictionary: null, // #15 Криптономикон-4 - Самостоятельная работа (валидации)
       isValid: true, // #15 Криптономикон-4 - Самостоятельная работа (валидации)
@@ -425,7 +428,12 @@ export default {
     updateTicker(tickerName, price) {
       this.tickers
         .filter((t) => t.name === tickerName)
-        .forEach((t) => (t.price = price));
+        .forEach((t) => {
+          if (t === this.selectedTicker) {
+            this.graph.push(price);
+          }
+          t.price = price;
+        });
     },
 
     formatPrice(price) {
