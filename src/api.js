@@ -1,25 +1,40 @@
 const API_KEY = `9563db33341ed2502231935ffbea554d65356f7b8686b709d10d91580682a0b2`;
 
 const tickerHandlers = new Map();
+// ticker: {
+//   updateHandlers: [],
+//   errorHandlers: []
+// }
+
 const socket = new WebSocket(
   `wss://streamer.cryptocompare.com/v2?api_key=${API_KEY}`
 );
 
 const AGGREGATE_INDEX = `5`;
+const INVALID_SUB = `500`;
 
 socket.addEventListener(`message`, (event) => {
   const {
     TYPE: type,
     FROMSYMBOL: currency,
     PRICE: newPrice,
+    PARAMETER: parameter,
   } = JSON.parse(event.data);
 
   if (type !== AGGREGATE_INDEX || newPrice === undefined) {
+    // #21 Криптономикон: улучшаем API - Vue.js: практика
+    // при ошибке будут запускаться слушатели ошибок
+    if (type === INVALID_SUB && parameter) {
+      const erroredTicket = parameter.split(`~`)[2];
+      const errorHandlers = tickerHandlers.get(erroredTicket).errorHandlers;
+      errorHandlers.forEach((fn) => fn());
+    }
+
     return;
   }
 
-  const handlers = tickerHandlers.get(currency);
-  handlers.forEach((fn) => fn(newPrice));
+  const updateHandlers = tickerHandlers.get(currency).updateHandlers;
+  updateHandlers.forEach((fn) => fn(newPrice));
 });
 
 const sendToWebSocket = (message) => {
@@ -53,9 +68,21 @@ const unsubscribeToTickerOnWs = (ticker) => {
   });
 };
 
-export const subscribeToTicker = (ticker, callback) => {
-  const subscribers = tickerHandlers.get(ticker) || [];
-  tickerHandlers.set(ticker, [...subscribers, callback]);
+export const subscribeToTicker = (ticker, onUpdate, onError = null) => {
+  // #21 Криптономикон: улучшаем API - Vue.js: практика
+  // Переписал логику так, что есть возможность подписываться на ошибки отдельно, не ломая старый интерфейс
+  const subscribers = tickerHandlers.get(ticker) || {
+    updateHandlers: [],
+    errorHandlers: [],
+  };
+
+  tickerHandlers.set(ticker, {
+    updateHandlers: [...subscribers.updateHandlers, onUpdate],
+    errorHandlers: onError
+      ? [...subscribers.errorHandlers, onError]
+      : subscribers.errorHandlers,
+  });
+
   subscribeToTickerOnWs(ticker);
 };
 

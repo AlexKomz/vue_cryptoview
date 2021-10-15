@@ -212,6 +212,7 @@
             @click="select(t)"
             :class="{
               'border-4': selectedTicker === t,
+              'bg-red-100': t.isErrored,
             }"
             class="
               bg-white
@@ -372,6 +373,14 @@ export default {
         subscribeToTicker(ticker.name, (newPrice) =>
           this.updateTicker(ticker.name, newPrice)
         );
+
+        // #21 Криптономикон: улучшаем API - Vue.js: практика
+        // Добавил, что при ошибке будет помечаться ошибочным, а если ошибка пропадет, то возвращаться
+        subscribeToTicker(
+          ticker.name,
+          () => (ticker.isErrored = false),
+          () => (ticker.isErrored = true)
+        );
       });
     }
   },
@@ -444,7 +453,9 @@ export default {
     add() {
       if (!this.ticker) return;
 
-      const currentTicker = { name: this.ticker, price: `-` };
+      // #21 Криптономикон: улучшаем API - Vue.js: практика
+      // add isErrored: false
+      const currentTicker = { name: this.ticker, price: `-`, isErrored: false };
 
       this.isValid = this.validate(currentTicker); // #15 Криптономикон-4 - Самостоятельная работа (валидации)
 
@@ -456,6 +467,14 @@ export default {
 
       subscribeToTicker(currentTicker.name, (newPrice) =>
         this.updateTicker(currentTicker.name, newPrice)
+      );
+
+      // #21 Криптономикон: улучшаем API - Vue.js: практика
+      // Добавил, что при ошибке будет помечаться ошибочным, а если ошибка пропадет, то возвращаться
+      subscribeToTicker(
+        currentTicker.name,
+        () => (currentTicker.isErrored = false),
+        () => (currentTicker.isErrored = true)
       );
     },
 
