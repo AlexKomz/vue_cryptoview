@@ -378,8 +378,8 @@ export default {
         // Добавил, что при ошибке будет помечаться ошибочным, а если ошибка пропадет, то возвращаться
         subscribeToTicker(
           ticker.name,
-          () => (ticker.isErrored = false),
-          () => (ticker.isErrored = true)
+          () => this.markErroredTicker(ticker.name, false),
+          () => this.markErroredTicker(ticker.name, true)
         );
       });
     }
@@ -434,15 +434,25 @@ export default {
   },
 
   methods: {
+    // #21 Криптономикон: улучшаем API - Vue.js: практика
+    getFilteredTickersByName(tickerName) {
+      return this.tickers.filter((t) => t.name === tickerName);
+    },
+
     updateTicker(tickerName, price) {
-      this.tickers
-        .filter((t) => t.name === tickerName)
-        .forEach((t) => {
-          if (t === this.selectedTicker) {
-            this.graph.push(price);
-          }
-          t.price = price;
-        });
+      this.getFilteredTickersByName(tickerName).forEach((t) => {
+        if (t === this.selectedTicker) {
+          this.graph.push(price);
+        }
+        t.price = price;
+      });
+    },
+
+    // #21 Криптономикон: улучшаем API - Vue.js: практика
+    markErroredTicker(tickerName, isErrored) {
+      this.getFilteredTickersByName(tickerName).forEach((t) => {
+        t.isErrored = isErrored;
+      });
     },
 
     formatPrice(price) {
@@ -473,8 +483,8 @@ export default {
       // Добавил, что при ошибке будет помечаться ошибочным, а если ошибка пропадет, то возвращаться
       subscribeToTicker(
         currentTicker.name,
-        () => (currentTicker.isErrored = false),
-        () => (currentTicker.isErrored = true)
+        () => this.markErroredTicker(currentTicker.name, false),
+        () => this.markErroredTicker(currentTicker.name, true)
       );
     },
 

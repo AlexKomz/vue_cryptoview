@@ -26,7 +26,8 @@ socket.addEventListener(`message`, (event) => {
     // при ошибке будут запускаться слушатели ошибок
     if (type === INVALID_SUB && parameter) {
       const erroredTicket = parameter.split(`~`)[2];
-      const errorHandlers = tickerHandlers.get(erroredTicket).errorHandlers;
+      const errorHandlers =
+        tickerHandlers.get(erroredTicket)?.errorHandlers ?? [];
       errorHandlers.forEach((fn) => fn());
     }
 
