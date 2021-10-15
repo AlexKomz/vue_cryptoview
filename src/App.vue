@@ -370,15 +370,11 @@ export default {
     if (tickersData) {
       this.tickers = JSON.parse(tickersData);
       this.tickers.forEach((ticker) => {
-        subscribeToTicker(ticker.name, (newPrice) =>
-          this.updateTicker(ticker.name, newPrice)
-        );
-
         // #21 Криптономикон: улучшаем API - Vue.js: практика
-        // Добавил, что при ошибке будет помечаться ошибочным, а если ошибка пропадет, то возвращаться
+        // Добавил, что при ошибке будет помечаться ошибочным
         subscribeToTicker(
-          ticker.name,
-          () => this.markErroredTicker(ticker.name, false),
+          ticker,
+          (newPrice) => this.updateTicker(ticker.name, newPrice),
           () => this.markErroredTicker(ticker.name, true)
         );
       });
@@ -465,7 +461,12 @@ export default {
 
       // #21 Криптономикон: улучшаем API - Vue.js: практика
       // add isErrored: false
-      const currentTicker = { name: this.ticker, price: `-`, isErrored: false };
+      const currentTicker = {
+        name: this.ticker,
+        into: `BTC`,
+        price: `-`,
+        isErrored: false,
+      };
 
       this.isValid = this.validate(currentTicker); // #15 Криптономикон-4 - Самостоятельная работа (валидации)
 
@@ -475,15 +476,11 @@ export default {
       this.filter = ``;
       this.ticker = ``;
 
-      subscribeToTicker(currentTicker.name, (newPrice) =>
-        this.updateTicker(currentTicker.name, newPrice)
-      );
-
       // #21 Криптономикон: улучшаем API - Vue.js: практика
-      // Добавил, что при ошибке будет помечаться ошибочным, а если ошибка пропадет, то возвращаться
+      // Добавил, что при ошибке будет помечаться ошибочным
       subscribeToTicker(
-        currentTicker.name,
-        () => this.markErroredTicker(currentTicker.name, false),
+        currentTicker,
+        (newPrice) => this.updateTicker(currentTicker.name, newPrice),
         () => this.markErroredTicker(currentTicker.name, true)
       );
     },
@@ -499,7 +496,7 @@ export default {
         this.selectedTicker = null;
       }
 
-      unsubscribeFromTicker(tickerToRemove.name);
+      unsubscribeFromTicker(tickerToRemove);
     },
 
     // START #15 Криптономикон-4 - Самостоятельная работа (валидации)

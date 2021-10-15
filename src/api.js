@@ -1,3 +1,5 @@
+import BTC from "./BTC";
+
 const API_KEY = `9563db33341ed2502231935ffbea554d65356f7b8686b709d10d91580682a0b2`;
 
 const tickerHandlers = new Map();
@@ -17,21 +19,28 @@ socket.addEventListener(`message`, (event) => {
   const {
     TYPE: type,
     FROMSYMBOL: currency,
-    PRICE: newPrice,
+    TOSYMBOL: into,
+    PRICE: price,
     PARAMETER: parameter,
   } = JSON.parse(event.data);
 
-  if (type !== AGGREGATE_INDEX || newPrice === undefined) {
+  if (type !== AGGREGATE_INDEX || price === undefined) {
     // #21 Криптономикон: улучшаем API - Vue.js: практика
     // при ошибке будут запускаться слушатели ошибок
-    if (type === INVALID_SUB && parameter) {
+    if (type === INVALID_SUB && parameter && currency !== `BTC`) {
       const erroredTicket = parameter.split(`~`)[2];
-      const errorHandlers =
-        tickerHandlers.get(erroredTicket)?.errorHandlers ?? [];
-      errorHandlers.forEach((fn) => fn());
+      const errorHandlers = tickerHandlers.get(erroredTicket)?.errorHandlers;
+      errorHandlers?.forEach((fn) => fn());
     }
 
     return;
+  }
+
+  let newPrice = price;
+
+  if (into === `BTC`) {
+    const btcPrice = new BTC().price;
+    newPrice = Number.isNaN(+btcPrice) ? btcPrice : price * btcPrice;
   }
 
   const updateHandlers = tickerHandlers.get(currency).updateHandlers;
@@ -55,41 +64,45 @@ const sendToWebSocket = (message) => {
   );
 };
 
-const subscribeToTickerOnWs = (ticker) => {
+const subscribeToTickerOnWs = (ticker, into) => {
   sendToWebSocket({
     action: `SubAdd`,
-    subs: [`5~CCCAGG~${ticker}~USD`],
+    subs: [`5~CCCAGG~${ticker}~${into}`],
   });
 };
 
-const unsubscribeToTickerOnWs = (ticker) => {
+const unsubscribeToTickerOnWs = (ticker, into) => {
   sendToWebSocket({
     action: `SubRemove`,
-    subs: [`5~CCCAGG~${ticker}~USD`],
+    subs: [`5~CCCAGG~${ticker}~${into}`],
   });
 };
 
 export const subscribeToTicker = (ticker, onUpdate, onError = null) => {
   // #21 Криптономикон: улучшаем API - Vue.js: практика
   // Переписал логику так, что есть возможность подписываться на ошибки отдельно, не ломая старый интерфейс
-  const subscribers = tickerHandlers.get(ticker) || {
+  const subscribers = tickerHandlers.get(ticker.name) || {
     updateHandlers: [],
     errorHandlers: [],
   };
 
-  tickerHandlers.set(ticker, {
+  tickerHandlers.set(ticker.name, {
     updateHandlers: [...subscribers.updateHandlers, onUpdate],
     errorHandlers: onError
       ? [...subscribers.errorHandlers, onError]
       : subscribers.errorHandlers,
   });
 
-  subscribeToTickerOnWs(ticker);
+  if (ticker.name === ticker.into) return;
+
+  subscribeToTickerOnWs(ticker.name, ticker.into);
 };
 
 export const unsubscribeFromTicker = (ticker) => {
-  tickerHandlers.delete(ticker);
-  unsubscribeToTickerOnWs(ticker);
+  if (ticker.name === `BTC`) return;
+
+  tickerHandlers.delete(ticker.name);
+  unsubscribeToTickerOnWs(ticker.name, ticker.into);
 };
 
 // START #15 Криптономикон-4 - Самостоятельная работа (валидации)
