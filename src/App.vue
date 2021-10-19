@@ -505,7 +505,7 @@ export default {
         this.selectedTicker = null;
       }
 
-      unsubscribeFromTicker(tickerToRemove);
+      unsubscribeFromTicker(tickerToRemove.name);
     },
 
     // START #15 Криптономикон-4 - Самостоятельная работа (валидации)

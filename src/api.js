@@ -5,41 +5,79 @@ const tickerHandlers = new Map();
 // }
 
 const AGGREGATE_INDEX_TYPE = `5`;
-const INVALID_SUB = `500`;
+const INVALID_SUB = `INVALID_SUB`;
+
+const BTC = {
+  NAME: `BTC`,
+  price: `-`,
+  loaded: false,
+};
+
+const USD = `USD`;
+
+const crossConverted = new Map();
 
 const worker = new SharedWorker(`worker.js`).port;
 worker.start();
 
+const tickerFromString = (str) => {
+  const splitedString = str.split(`~`);
+
+  return {
+    name: splitedString[2],
+    currency: splitedString[3],
+  };
+};
+
 worker.addEventListener(`message`, (event) => {
-  const { type, ticker, price, parameter } = event.data;
+  const { type, ticker, price, parameter, message } = event.data;
 
-  if (type !== AGGREGATE_INDEX_TYPE || price === undefined) {
-    // #21 Криптономикон: улучшаем API - Vue.js: практика
-    // при ошибке будут запускаться слушатели ошибок
-    if (type === INVALID_SUB && parameter) {
-      const erroredTicket = parameter.split(`~`)[2];
-      const errorHandlers = tickerHandlers.get(erroredTicket)?.errorHandlers;
+  // #21 Криптономикон: улучшаем API - Vue.js: практика
+  // при ошибке будут запускаться слушатели ошибок
+  if (message === INVALID_SUB) {
+    const erroredTicket = tickerFromString(parameter);
+
+    if (erroredTicket.currency !== USD) {
+      const errorHandlers = tickerHandlers.get(
+        erroredTicket.name
+      )?.errorHandlers;
       errorHandlers?.forEach((fn) => fn());
+    } else {
+      crossConverted.set(erroredTicket.name, true);
+      subscribeToTickerOnWs(erroredTicket.name, BTC.NAME);
+      BTC.loaded || subscribeToTickerOnWs(BTC.NAME, erroredTicket.currency);
     }
-
-    return;
   }
 
-  const updateHandlers = tickerHandlers.get(ticker).updateHandlers;
-  updateHandlers.forEach((fn) => fn(price));
+  if (type !== AGGREGATE_INDEX_TYPE || price === undefined) return;
+
+  if (ticker.name === BTC.NAME) {
+    if (!BTC.loaded) BTC.loaded = true;
+
+    BTC.price = price;
+  }
+
+  let newPrice = price;
+
+  if (ticker.currency === BTC.NAME) {
+    newPrice = BTC.loaded ? price * BTC.price : BTC.price;
+  }
+
+  const updateHandlers = tickerHandlers.get(ticker.name)?.updateHandlers;
+  updateHandlers?.forEach((fn) => fn(newPrice));
 });
 
-const subscribeToTickerOnWs = (ticker) => {
+const subscribeToTickerOnWs = (ticker, currency) => {
   worker.postMessage({
     type: `SUBSCRIBE`,
-    payload: { ticker },
+    payload: { name: ticker, currency },
   });
 };
 
-const unsubscribeToTickerOnWs = (ticker) => {
+const unsubscribeToTickerOnWs = (ticker, currency) => {
   worker.postMessage({
     type: `UNSUBSCRIBE`,
-    payload: { ticker },
+    payload: { name: ticker, currency },
   });
 };
 
@@ -62,12 +100,26 @@ export const subscribeToTicker = (ticker, onUpdate, onError = null) => {
 
   if (isSubscribedTicker) return;
 
-  subscribeToTickerOnWs(ticker);
+  subscribeToTickerOnWs(ticker, USD);
 };
 
 export const unsubscribeFromTicker = (ticker) => {
   tickerHandlers.delete(ticker);
-  unsubscribeToTickerOnWs(ticker);
+
+  if (crossConverted.has(ticker)) {
+    crossConverted.delete(ticker);
+    unsubscribeToTickerOnWs(ticker, BTC.NAME);
+
+    if (!tickerHandlers.has(BTC.NAME) && !crossConverted.size) {
+      unsubscribeToTickerOnWs(BTC.NAME, USD);
+    }
+
+    return;
+  }
+
+  if (ticker === BTC.NAME && crossConverted.size) return;
+
+  unsubscribeToTickerOnWs(ticker, USD);
 };
 
 // START #15 Криптономикон-4 - Самостоятельная работа (валидации)

@@ -10,7 +10,8 @@ const ports = [];
 socket.addEventListener(`message`, (event) => {
   const {
     TYPE: type,
-    FROMSYMBOL: ticker,
+    FROMSYMBOL: fsym,
+    TOSYMBOL: tsym,
     PRICE: price,
     PARAMETER: parameter,
     MESSAGE: message,
@@ -21,9 +22,13 @@ socket.addEventListener(`message`, (event) => {
   ports.forEach((port) =>
     port.postMessage({
       type,
-      ticker,
+      ticker: {
+        name: fsym,
+        currency: tsym,
+      },
       price,
       parameter,
+      message,
     })
   );
 });
@@ -45,23 +50,25 @@ const sendToWebSocket = (message) => {
   );
 };
 
-const subscribeToTickerOnWs = (ticker) => {
+const subscribeToTickerOnWs = (name, currency) => {
   sendToWebSocket({
     action: `SubAdd`,
-    subs: [`5~CCCAGG~${ticker}~USD`],
+    subs: [`5~CCCAGG~${name}~${currency}`],
   });
 };
 
-const unsubscribeToTickerOnWs = (ticker) => {
+const unsubscribeToTickerOnWs = (name, currency) => {
   sendToWebSocket({
     action: `SubRemove`,
-    subs: [`5~CCCAGG~${ticker}~USD`],
+    subs: [`5~CCCAGG~${name}~${currency}`],
   });
 };
 
 const handlers = {
-  [`SUBSCRIBE`]: (payload) => subscribeToTickerOnWs(payload.ticker),
-  [`UNSUBSCRIBE`]: (payload) => unsubscribeToTickerOnWs(payload.ticker),
+  [`SUBSCRIBE`]: (payload) =>
+    subscribeToTickerOnWs(payload.name, payload.currency),
+  [`UNSUBSCRIBE`]: (payload) =>
+    unsubscribeToTickerOnWs(payload.name, payload.currency),
 };
 
 self.addEventListener(`connect`, (connectEvent) => {
