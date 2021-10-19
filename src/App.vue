@@ -373,13 +373,13 @@ export default {
         // #21 Криптономикон: улучшаем API - Vue.js: практика
         // Добавил, что при ошибке будет помечаться ошибочным
         subscribeToTicker(
-          ticker,
+          ticker.name,
           (newPrice) => this.updateTicker(ticker.name, newPrice)
           // () => this.markErroredTicker(ticker.name, true)
         );
 
         subscribeToTicker(
-          ticker,
+          ticker.name,
           () => this.markErroredTicker(ticker.name, false),
           () => this.markErroredTicker(ticker.name, true)
         );
@@ -469,7 +469,6 @@ export default {
       // add isErrored: false
       const currentTicker = {
         name: this.ticker,
-        into: `BTC`,
         price: `-`,
         isErrored: false,
       };
@@ -484,12 +483,12 @@ export default {
 
       // #21 Криптономикон: улучшаем API - Vue.js: практика
       // Добавил, что при ошибке будет помечаться ошибочным
-      subscribeToTicker(currentTicker, (newPrice) =>
+      subscribeToTicker(currentTicker.name, (newPrice) =>
         this.updateTicker(currentTicker.name, newPrice)
       );
 
       subscribeToTicker(
-        currentTicker,
+        currentTicker.name,
         () => this.markErroredTicker(currentTicker.name, false),
         () => this.markErroredTicker(currentTicker.name, true)
       );

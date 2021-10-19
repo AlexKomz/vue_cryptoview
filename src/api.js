@@ -1,24 +1,22 @@
-import BTC from "./BTC";
-
 const tickerHandlers = new Map();
 // ticker: {
 //   updateHandlers: [],
 //   errorHandlers: []
 // }
 
-const AGGREGATE_INDEX = `5`;
+const AGGREGATE_INDEX_TYPE = `5`;
 const INVALID_SUB = `500`;
 
 const worker = new SharedWorker(`worker.js`).port;
 worker.start();
 
 worker.addEventListener(`message`, (event) => {
-  const { type, currency, into, price, parameter } = event.data;
+  const { type, currency, price, parameter } = event.data;
 
-  if (type !== AGGREGATE_INDEX || price === undefined) {
+  if (type !== AGGREGATE_INDEX_TYPE || price === undefined) {
     // #21 Криптономикон: улучшаем API - Vue.js: практика
     // при ошибке будут запускаться слушатели ошибок
-    if (type === INVALID_SUB && parameter && currency !== `BTC`) {
+    if (type === INVALID_SUB && parameter) {
       const erroredTicket = parameter.split(`~`)[2];
       const errorHandlers = tickerHandlers.get(erroredTicket)?.errorHandlers;
       errorHandlers?.forEach((fn) => fn());
@@ -27,28 +25,21 @@ worker.addEventListener(`message`, (event) => {
     return;
   }
 
-  let newPrice = price;
-
-  if (into === `BTC`) {
-    const btcPrice = new BTC().price;
-    newPrice = Number.isNaN(+btcPrice) ? btcPrice : price * btcPrice;
-  }
-
   const updateHandlers = tickerHandlers.get(currency).updateHandlers;
-  updateHandlers.forEach((fn) => fn(newPrice));
+  updateHandlers.forEach((fn) => fn(price));
 });
 
-const subscribeToTickerOnWs = (ticker, into) => {
+const subscribeToTickerOnWs = (ticker) => {
   worker.postMessage({
     type: `SUBSCRIBE`,
-    payload: { ticker, into },
+    payload: { ticker },
   });
 };
 
-const unsubscribeToTickerOnWs = (ticker, into) => {
+const unsubscribeToTickerOnWs = (ticker) => {
   worker.postMessage({
     type: `UNSUBSCRIBE`,
-    payload: { ticker, into },
+    payload: { ticker },
   });
 };
 
@@ -57,28 +48,26 @@ export const subscribeToTicker = (ticker, onUpdate, onError = null) => {
   // Переписал логику так, что есть возможность подписываться на ошибки отдельно, не ломая старый интерфейс
   const isSubscribedTicker = tickerHandlers.has(ticker);
 
-  const subscribers = tickerHandlers.get(ticker.name) || {
+  const subscribers = tickerHandlers.get(ticker) || {
     updateHandlers: [],
     errorHandlers: [],
   };
 
-  tickerHandlers.set(ticker.name, {
+  tickerHandlers.set(ticker, {
     updateHandlers: [...subscribers.updateHandlers, onUpdate],
     errorHandlers: onError
       ? [...subscribers.errorHandlers, onError]
       : subscribers.errorHandlers,
   });
 
-  if (isSubscribedTicker || ticker.name === ticker.into) return;
+  if (isSubscribedTicker) return;
 
-  subscribeToTickerOnWs(ticker.name, ticker.into);
+  subscribeToTickerOnWs(ticker);
 };
 
 export const unsubscribeFromTicker = (ticker) => {
-  if (ticker.name === `BTC`) return;
-
-  tickerHandlers.delete(ticker.name);
-  unsubscribeToTickerOnWs(ticker.name, ticker.into);
+  tickerHandlers.delete(ticker);
+  unsubscribeToTickerOnWs(ticker);
 };
 
 // START #15 Криптономикон-4 - Самостоятельная работа (валидации)
