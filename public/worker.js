@@ -10,7 +10,7 @@ const ports = [];
 socket.addEventListener(`message`, (event) => {
   const {
     TYPE: type,
-    FROMSYMBOL: currency,
+    FROMSYMBOL: ticker,
     PRICE: price,
     PARAMETER: parameter,
     MESSAGE: message,
@@ -21,7 +21,7 @@ socket.addEventListener(`message`, (event) => {
   ports.forEach((port) =>
     port.postMessage({
       type,
-      currency,
+      ticker,
       price,
       parameter,
     })

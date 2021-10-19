@@ -11,7 +11,7 @@ const worker = new SharedWorker(`worker.js`).port;
 worker.start();
 
 worker.addEventListener(`message`, (event) => {
-  const { type, currency, price, parameter } = event.data;
+  const { type, ticker, price, parameter } = event.data;
 
   if (type !== AGGREGATE_INDEX_TYPE || price === undefined) {
     // #21 Криптономикон: улучшаем API - Vue.js: практика
@@ -25,7 +25,7 @@ worker.addEventListener(`message`, (event) => {
     return;
   }
 
-  const updateHandlers = tickerHandlers.get(currency).updateHandlers;
+  const updateHandlers = tickerHandlers.get(ticker).updateHandlers;
   updateHandlers.forEach((fn) => fn(price));
 });
 
