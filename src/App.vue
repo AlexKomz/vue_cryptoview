@@ -39,107 +39,14 @@
     </div>
     <!--END #15 Криптономикон-4 - Самостоятельная работа (валидации)-->
     <div class="container">
-      <section>
-        <div class="flex">
-          <div class="max-w-xs">
-            <label for="wallet" class="block text-sm font-medium text-gray-700"
-              >Тикер {{ ticker }}</label
-            >
-            <div class="mt-1 relative rounded-md shadow-md">
-              <!--#15 Криптономикон-4 - Самостоятельная работа (валидации)-->
-              <input
-                @input="handleInput"
-                v-model="ticker"
-                v-on:keydown.enter="add"
-                type="text"
-                name="wallet"
-                id="wallet"
-                class="
-                  block
-                  w-full
-                  pr-10
-                  border-gray-300
-                  text-gray-900
-                  focus:outline-none focus:ring-gray-500 focus:border-gray-500
-                  sm:text-sm
-                  rounded-md
-                "
-                placeholder="Например DOGE"
-              />
-            </div>
-            <!--START #15 Криптономикон-4 - Самостоятельная работа (валидации)-->
-            <div
-              v-if="autocomplete.length"
-              class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
-            >
-              <span
-                v-for="t in autocomplete"
-                :key="t.Id"
-                @click="handleAutocompleteClick(t.Symbol)"
-                class="
-                  inline-flex
-                  items-center
-                  px-2
-                  m-1
-                  rounded-md
-                  text-xs
-                  font-medium
-                  bg-gray-300
-                  text-gray-800
-                  cursor-pointer
-                "
-              >
-                {{ t.Symbol }}
-              </span>
-            </div>
-            <div v-if="!isValid" class="text-sm text-red-600">
-              Такой тикер уже добавлен
-            </div>
-            <!--END #15 Криптономикон-4 - Самостоятельная работа (валидации)-->
-          </div>
-        </div>
-        <button
-          @click="add"
-          type="button"
-          class="
-            my-4
-            inline-flex
-            items-center
-            py-2
-            px-4
-            border border-transparent
-            shadow-sm
-            text-sm
-            leading-4
-            font-medium
-            rounded-full
-            text-white
-            bg-gray-600
-            hover:bg-gray-700
-            transition-colors
-            duration-300
-            focus:outline-none
-            focus:ring-2
-            focus:ring-offset-2
-            focus:ring-gray-500
-          "
-        >
-          <!-- Heroicon name: solid/mail -->
-          <svg
-            class="-ml-0.5 mr-2 h-6 w-6"
-            xmlns="http://www.w3.org/2000/svg"
-            width="30"
-            height="30"
-            viewBox="0 0 24 24"
-            fill="#ffffff"
-          >
-            <path
-              d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
-            ></path>
-          </svg>
-          Добавить
-        </button>
-      </section>
+      <div class="w-full my-4" />
+
+      <add-ticker
+        @add-ticker="add"
+        :disabled="tooManyTickersAdded"
+        :dictionary="dictionary"
+        :tickers="tickers"
+      />
 
       <template v-if="tickers.length">
         <hr class="w-full border-t border-gray-600 my-4" />
@@ -273,7 +180,10 @@
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
           {{ selectedTicker.name }} - USD
         </h3>
-        <div class="flex items-end border-gray-600 border-b border-l h-64">
+        <div
+          class="flex items-end border-gray-600 border-b border-l h-64"
+          ref="graph"
+        >
           <div
             v-for="(bar, index) in normalizedGraph"
             :key="index"
@@ -311,15 +221,16 @@
 </template>
 
 <script>
+// H - Homework - домашнее задание
 // [x] 6. Наличии в состоянии ЗАВИСИМЫХ ДАННЫХ | Критичность: 5+
-// [ ] 4. Запросы напрямую внутри компонента (???) | Критичность: 5
-// [ ] 2. При удалении остается подписка на загрузку тикера | Критичность: 5
-// [ ] 5. Обработка ошибок API | Критичность: 5
-// [ ] 3. Количество запросов | Критичность: 4
+// [x] 4. Запросы напрямую внутри компонента (???) | Критичность: 5
+// [x] 2. При удалении остается подписка на загрузку тикера | Критичность: 5
+// [x] 5. Обработка ошибок API | Критичность: 5
+// [x] 3. Количество запросов | Критичность: 4
 // [x] 8. При удалении тикера не изменяется localStorage | Критичность: 4
 // [x] 1. Одинаковый код в watch | Критичность: 3
 // [ ] 9. localStorage и анонимные вкладки | Критичность: 3
-// [ ] 7. График ужасно выглядит если будет много цен | Критичность: 2
+// [x] 7. График ужасно выглядит если будет много цен | Критичность: 2
 // [ ] 10. Магические строки и числа (URL, 5000 мс задержки, ключ localStorage, количество на странице) | Критичность: 1
 
 // Параллельно
@@ -331,9 +242,14 @@ import {
   subscribeToTicker,
   unsubscribeFromTicker,
 } from "./api";
+import AddTicker from "./components/AddTicker.vue";
 
 export default {
   name: "App",
+
+  components: {
+    AddTicker,
+  },
 
   data() {
     return {
@@ -344,11 +260,10 @@ export default {
       selectedTicker: null,
 
       graph: [],
+      maxGraphElements: 1,
 
       page: 1,
       dictionary: null, // #15 Криптономикон-4 - Самостоятельная работа (валидации)
-      isValid: true, // #15 Криптономикон-4 - Самостоятельная работа (валидации)
-      autocomplete: [], // #15 Криптономикон-4 - Самостоятельная работа (валидации)
     };
   },
 
@@ -390,10 +305,20 @@ export default {
   // START #15 Криптономикон-4 - Самостоятельная работа (валидации)
   mounted() {
     loadDictionary().then((data) => (this.dictionary = data));
+
+    window.addEventListener(`resize`, this.calculateMaxGraphElements);
   },
   // END #15 Криптономикон-4 - Самостоятельная работа (валидации)
 
+  beforeUnmount() {
+    window.removeEventListener(`resize`, this.calculateMaxGraphElements);
+  },
+
   computed: {
+    tooManyTickersAdded() {
+      return this.tickers.length > 4;
+    },
+
     startIndex() {
       return (this.page - 1) * 6;
     },
@@ -441,10 +366,19 @@ export default {
       return this.tickers.filter((t) => t.name === tickerName);
     },
 
+    calculateMaxGraphElements() {
+      if (!this.$refs.graph) return;
+      this.maxGraphElements = this.$refs.graph.clientWidth / 38;
+      this.graph = this.graph.slice(-this.maxGraphElements);
+    },
+
     updateTicker(tickerName, price) {
       this.getFilteredTickersByName(tickerName).forEach((t) => {
         if (t === this.selectedTicker) {
           this.graph.push(price);
+          if (this.graph.length > this.maxGraphElements) {
+            this.graph = this.graph.slice(-this.maxGraphElements);
+          }
         }
         t.price = price;
       });
@@ -462,24 +396,17 @@ export default {
       return price > 1 ? price.toFixed(2) : price.toPrecision(2);
     },
 
-    add() {
-      if (!this.ticker) return;
-
+    add(ticker) {
       // #21 Криптономикон: улучшаем API - Vue.js: практика
       // add isErrored: false
       const currentTicker = {
-        name: this.ticker,
+        name: ticker,
         price: `-`,
         isErrored: false,
       };
 
-      this.isValid = this.validate(currentTicker); // #15 Криптономикон-4 - Самостоятельная работа (валидации)
-
-      if (!this.isValid) return; // #15 Криптономикон-4 - Самостоятельная работа (валидации)
-
       this.tickers = [...this.tickers, currentTicker];
       this.filter = ``;
-      this.ticker = ``;
 
       // #21 Криптономикон: улучшаем API - Vue.js: практика
       // Добавил, что при ошибке будет помечаться ошибочным
@@ -507,36 +434,6 @@ export default {
 
       unsubscribeFromTicker(tickerToRemove.name);
     },
-
-    // START #15 Криптономикон-4 - Самостоятельная работа (валидации)
-    handleInput() {
-      this.isValid = true;
-
-      if (!this.ticker) return;
-
-      const input = this.ticker.toLowerCase();
-      this.autocomplete = Object.values(this.dictionary)
-        .filter((item) => {
-          const symbol = item.Symbol.toLowerCase();
-          const fullName = item.FullName.toLowerCase();
-
-          return symbol.includes(input) || fullName.includes(input);
-        })
-        .slice(0, 4);
-    },
-
-    handleAutocompleteClick(tickerFromAutocomplete) {
-      this.ticker = tickerFromAutocomplete;
-      this.add();
-    },
-
-    // END #15 Криптономикон-4 - Самостоятельная работа (валидации)
-
-    // START #15 Криптономикон-4 - Самостоятельная работа (валидации)
-    validate(ticketToValid) {
-      return !this.tickers.some((ticket) => ticket.name === ticketToValid.name);
-    },
-    // END #15 Криптономикон-4 - Самостоятельная работа (валидации)
   },
 
   watch: {
@@ -546,6 +443,10 @@ export default {
 
     selectedTicker() {
       this.graph = [];
+
+      this.$nextTick().then(() => {
+        this.calculateMaxGraphElements();
+      });
     },
 
     paginatedTickers() {
@@ -565,12 +466,6 @@ export default {
         `${window.location.pathname}?filter=${value.filter}&page=${value.page}`
       );
     },
-
-    // START #15 Криптономикон-4 - Самостоятельная работа (валидации)
-    ticker() {
-      if (!this.ticker) this.autocomplete = [];
-    },
-    // END #15 Криптономикон-4 - Самостоятельная работа (валидации)
   },
 };
 </script>
