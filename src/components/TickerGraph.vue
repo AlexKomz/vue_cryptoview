@@ -43,6 +43,14 @@
 
 <script>
 export default {
+  mounted() {
+    window.addEventListener(`resize`, this.calculateMaxGraphElements);
+  },
+
+  beforeUnmount() {
+    window.removeEventListener(`resize`, this.calculateMaxGraphElements);
+  },
+
   props: {
     graph: {
       type: Array,
@@ -88,15 +96,9 @@ export default {
 
   watch: {
     selectedTicker() {
-      if (this.selectedTicker) {
-        window.addEventListener(`resize`, this.calculateMaxGraphElements);
-
-        this.$nextTick().then(() => {
-          this.calculateMaxGraphElements();
-        });
-      } else {
-        window.removeEventListener(`resize`, this.calculateMaxGraphElements);
-      }
+      this.$nextTick().then(() => {
+        this.calculateMaxGraphElements();
+      });
     },
   },
 };
