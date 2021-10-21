@@ -14,11 +14,7 @@
         class="bg-purple-800 border w-10"
       ></div>
     </div>
-    <button
-      @click="$emit(`close-handler`)"
-      type="button"
-      class="absolute top-0 right-0"
-    >
+    <button @click="closeHandler" type="button" class="absolute top-0 right-0">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="30"
@@ -66,7 +62,8 @@ export default {
   },
 
   emits: {
-    "change-graph-handler": null,
+    close: null,
+    "change-graph": null,
   },
 
   computed: {
@@ -88,10 +85,15 @@ export default {
     calculateMaxGraphElements() {
       if (!this.$refs.graph) return;
       this.maxGraphElements = this.$refs.graph.clientWidth / 38;
-      this.$emit(
-        `change-graph-handler`,
-        this.graph.slice(-this.maxGraphElements)
-      );
+      this.changeGraphHandler(this.graph.slice(-this.maxGraphElements));
+    },
+
+    closeHandler() {
+      this.$emit(`close`);
+    },
+
+    changeGraphHandler(newGraph) {
+      this.$emit(`change-graph`, newGraph);
     },
   },
 
@@ -99,10 +101,7 @@ export default {
     graph() {
       if (this.selectedTicker) {
         if (this.graph.length > this.maxGraphElements) {
-          this.$emit(
-            `change-graph-handler`,
-            this.graph.slice(-this.maxGraphElements)
-          );
+          this.changeGraphHandler(this.graph.slice(-this.maxGraphElements));
         }
       }
     },
