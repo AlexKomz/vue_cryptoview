@@ -179,10 +179,8 @@
 
       <ticker-graph
         :graph="graph"
-        :maxGraphElements="maxGraphElements"
         :selectedTicker="selectedTicker"
         @close-handler="selectedTicker = null"
-        @change-max-elements-handler="maxGraphElements = $event"
         @change-graph-handler="graph = $event"
       />
     </div>
@@ -206,13 +204,14 @@
 // [x] График сломан если везде одинаковые значения
 // [x] При удалении тикера остается выбор
 
-// [x][H] Выделить график в отдельный компонент!
+// [x] Выделить график в отдельный компонент!
 
 import {
   loadDictionary,
   subscribeToTicker,
   unsubscribeFromTicker,
 } from "./api";
+
 import AddTicker from "./components/AddTicker.vue";
 import TickerGraph from "./components/TickerGraph.vue";
 
@@ -233,7 +232,6 @@ export default {
       selectedTicker: null,
 
       graph: [],
-      maxGraphElements: 1,
 
       page: 1,
       dictionary: null, // #15 Криптономикон-4 - Самостоятельная работа (валидации)
@@ -323,10 +321,7 @@ export default {
     updateTicker(tickerName, price) {
       this.getFilteredTickersByName(tickerName).forEach((t) => {
         if (t === this.selectedTicker) {
-          this.graph.push(price);
-          if (this.graph.length > this.maxGraphElements) {
-            this.graph = this.graph.slice(-this.maxGraphElements);
-          }
+          this.graph = [...this.graph, price];
         }
         t.price = price;
       });

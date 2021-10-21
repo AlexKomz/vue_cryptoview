@@ -51,13 +51,13 @@ export default {
     window.removeEventListener(`resize`, this.calculateMaxGraphElements);
   },
 
+  data: () => ({
+    maxGraphElements: 1,
+  }),
+
   props: {
     graph: {
       type: Array,
-      required: true,
-    },
-    maxGraphElements: {
-      type: Number,
       required: true,
     },
     selectedTicker: {
@@ -83,10 +83,7 @@ export default {
   methods: {
     calculateMaxGraphElements() {
       if (!this.$refs.graph) return;
-      this.$emit(
-        `change-max-elements-handler`,
-        this.$refs.graph.clientWidth / 38
-      );
+      this.maxGraphElements = this.$refs.graph.clientWidth / 38;
       this.$emit(
         `change-graph-handler`,
         this.graph.slice(-this.maxGraphElements)
@@ -95,6 +92,17 @@ export default {
   },
 
   watch: {
+    graph() {
+      if (this.selectedTicker) {
+        if (this.graph.length > this.maxGraphElements) {
+          this.$emit(
+            `change-graph-handler`,
+            this.graph.slice(-this.maxGraphElements)
+          );
+        }
+      }
+    },
+
     selectedTicker() {
       this.$nextTick().then(() => {
         this.calculateMaxGraphElements();
