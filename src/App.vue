@@ -180,8 +180,8 @@
       <ticker-graph
         :graph="graph"
         :selectedTicker="selectedTicker"
-        @close-handler="selectedTicker = null"
-        @change-graph-handler="graph = $event"
+        @close="selectedTicker = null"
+        @change-graph="graph = $event"
       />
     </div>
   </div>
