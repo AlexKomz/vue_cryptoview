@@ -178,10 +178,9 @@
       </template>
 
       <ticker-graph
-        :graph="graph"
+        v-model:graph="graph"
         :selectedTicker="selectedTicker"
         @close="selectedTicker = null"
-        @change-graph="graph = $event"
       />
     </div>
   </div>

@@ -63,7 +63,7 @@ export default {
 
   emits: {
     close: null,
-    "change-graph": null,
+    "update:graph": null,
   },
 
   computed: {
@@ -85,15 +85,15 @@ export default {
     calculateMaxGraphElements() {
       if (!this.$refs.graph) return;
       this.maxGraphElements = this.$refs.graph.clientWidth / 38;
-      this.changeGraphHandler(this.graph.slice(-this.maxGraphElements));
+      this.updateGraphHandler(this.graph.slice(-this.maxGraphElements));
     },
 
     closeHandler() {
       this.$emit(`close`);
     },
 
-    changeGraphHandler(newGraph) {
-      this.$emit(`change-graph`, newGraph);
+    updateGraphHandler(newGraph) {
+      this.$emit(`update:graph`, newGraph);
     },
   },
 
@@ -101,7 +101,7 @@ export default {
     graph() {
       if (this.selectedTicker) {
         if (this.graph.length > this.maxGraphElements) {
-          this.changeGraphHandler(this.graph.slice(-this.maxGraphElements));
+          this.updateGraphHandler(this.graph.slice(-this.maxGraphElements));
         }
       }
     },
