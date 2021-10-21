@@ -22,6 +22,7 @@
     :class="{
       'opacity-50': disabled,
     }"
+    @click="$emit(`click`)"
   >
     <!-- Heroicon name: solid/mail -->
     <svg
@@ -48,6 +49,10 @@ export default {
       required: false,
       default: false,
     },
+  },
+
+  emits: {
+    click: null,
   },
 };
 </script>

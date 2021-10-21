@@ -65,6 +65,10 @@ export default {
     },
   },
 
+  emits: {
+    "change-graph-handler": null,
+  },
+
   computed: {
     normalizedGraph() {
       const maxValue = Math.max(...this.graph);
