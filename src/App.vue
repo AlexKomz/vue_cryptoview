@@ -3,7 +3,13 @@
     <!--START #15 Криптономикон-4 - Самостоятельная работа (валидации)-->
     <loading-overview v-if="!dictionary" />
     <!--END #15 Криптономикон-4 - Самостоятельная работа (валидации)-->
-    <div class="container">
+    <div class="container relative">
+      <error-message
+        v-if="errorMessage"
+        :errorMessage="errorMessage"
+        @close="errorMessage = ``"
+      />
+
       <div class="w-full my-4" />
 
       <add-ticker
@@ -70,6 +76,7 @@ import TickerGraph from "./components/TickerGraph.vue";
 import TickersList from "./components/TickersList.vue";
 import LoadingOverview from "./components/LoadingOverview.vue";
 import TickersFilter from "./components/TickersFilter.vue";
+import ErrorMessage from "./components/ErrorMessage.vue";
 
 export default {
   name: "App",
@@ -80,6 +87,7 @@ export default {
     TickersList,
     LoadingOverview,
     TickersFilter,
+    ErrorMessage,
   },
 
   data() {
@@ -94,6 +102,8 @@ export default {
 
       page: 1,
       dictionary: null, // #15 Криптономикон-4 - Самостоятельная работа (валидации)
+
+      errorMessage: ``,
     };
   },
 
@@ -119,8 +129,8 @@ export default {
         // Добавил, что при ошибке будет помечаться ошибочным
         subscribeToTicker(
           ticker.name,
-          (newPrice) => this.updateTicker(ticker.name, newPrice)
-          // () => this.markErroredTicker(ticker.name, true)
+          (newPrice) => this.updateTicker(ticker.name, newPrice),
+          (errorMessage) => (this.errorMessage = errorMessage)
         );
 
         subscribeToTicker(
@@ -211,8 +221,10 @@ export default {
 
       // #21 Криптономикон: улучшаем API - Vue.js: практика
       // Добавил, что при ошибке будет помечаться ошибочным
-      subscribeToTicker(currentTicker.name, (newPrice) =>
-        this.updateTicker(currentTicker.name, newPrice)
+      subscribeToTicker(
+        currentTicker.name,
+        (newPrice) => this.updateTicker(currentTicker.name, newPrice),
+        (errorMessage) => (this.errorMessage = errorMessage)
       );
 
       subscribeToTicker(

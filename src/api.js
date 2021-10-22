@@ -6,6 +6,7 @@ const tickerHandlers = new Map();
 
 const AGGREGATE_INDEX_TYPE = `5`;
 const INVALID_SUB = `INVALID_SUB`;
+const TOO_MANY_SOCKETS = `TOO_MANY_SOCKETS_MAX_1_PER_CLIENT`;
 
 const BTC = {
   NAME: `BTC`,
@@ -31,6 +32,15 @@ const tickerFromString = (str) => {
 
 worker.addEventListener(`message`, (event) => {
   const { type, ticker, price, parameter, message } = event.data;
+
+  if (message === TOO_MANY_SOCKETS) {
+    const errorHandler = tickerHandlers.entries().next().value[1]
+      .errorHandlers[0];
+    errorHandler(
+      `У вас уже открыто приложение в другом браузере или анонимной вкладке!`
+    );
+    return;
+  }
 
   // #21 Криптономикон: улучшаем API - Vue.js: практика
   // при ошибке будут запускаться слушатели ошибок
