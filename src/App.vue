@@ -1,42 +1,7 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
     <!--START #15 Криптономикон-4 - Самостоятельная работа (валидации)-->
-    <div
-      v-if="!dictionary"
-      class="
-        fixed
-        w-100
-        h-100
-        opacity-80
-        bg-purple-800
-        inset-0
-        z-50
-        flex
-        items-center
-        justify-center
-      "
-    >
-      <svg
-        class="animate-spin -ml-1 mr-3 h-12 w-12 text-white"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <circle
-          class="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          stroke-width="4"
-        ></circle>
-        <path
-          class="opacity-75"
-          fill="currentColor"
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-        ></path>
-      </svg>
-    </div>
+    <loading-overview v-if="!dictionary" />
     <!--END #15 Криптономикон-4 - Самостоятельная работа (валидации)-->
     <div class="container">
       <div class="w-full my-4" />
@@ -50,67 +15,12 @@
 
       <template v-if="tickers.length">
         <hr class="w-full border-t border-gray-600 my-4" />
-        <div>
-          <button
-            class="
-              mx-2
-              my-4
-              inline-flex
-              items-center
-              py-2
-              px-4
-              border border-transparent
-              shadow-sm
-              text-sm
-              leading-4
-              font-medium
-              rounded-full
-              text-white
-              bg-gray-600
-              hover:bg-gray-700
-              transition-colors
-              duration-300
-              focus:outline-none
-              focus:ring-2
-              focus:ring-offset-2
-              focus:ring-gray-500
-            "
-            v-if="page > 1"
-            @click="page = +page - 1"
-          >
-            Назад
-          </button>
-          <button
-            class="
-              mx-2
-              my-4
-              inline-flex
-              items-center
-              py-2
-              px-4
-              border border-transparent
-              shadow-sm
-              text-sm
-              leading-4
-              font-medium
-              rounded-full
-              text-white
-              bg-gray-600
-              hover:bg-gray-700
-              transition-colors
-              duration-300
-              focus:outline-none
-              focus:ring-2
-              focus:ring-offset-2
-              focus:ring-gray-500
-            "
-            v-if="hasNextPage"
-            @click="page = +page + 1"
-          >
-            Вперед
-          </button>
-          <div>Фильтр: <input v-model="filter" /></div>
-        </div>
+        <tickers-filter
+          v-model:filter="filter"
+          :page="Number(page)"
+          :hasNextPage="hasNextPage"
+          @click="setPage"
+        />
         <hr class="w-full border-t border-gray-600 my-4" />
         <tickers-list
           :paginatedTickers="paginatedTickers"
@@ -158,6 +68,8 @@ import {
 import AddTicker from "./components/AddTicker.vue";
 import TickerGraph from "./components/TickerGraph.vue";
 import TickersList from "./components/TickersList.vue";
+import LoadingOverview from "./components/LoadingOverview.vue";
+import TickersFilter from "./components/TickersFilter.vue";
 
 export default {
   name: "App",
@@ -166,6 +78,8 @@ export default {
     AddTicker,
     TickerGraph,
     TickersList,
+    LoadingOverview,
+    TickersFilter,
   },
 
   data() {
@@ -258,6 +172,10 @@ export default {
   },
 
   methods: {
+    setPage(page) {
+      this.page = page;
+    },
+
     // #21 Криптономикон: улучшаем API - Vue.js: практика
     getFilteredTickersByName(tickerName) {
       return this.tickers.filter((t) => t.name === tickerName);
